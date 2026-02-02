@@ -10,24 +10,68 @@
 html,body{height:100%}
 body{font-family:Inter;background:#121212;color:#fff}
 
-.page{min-height:100vh;display:flex;flex-direction:column;}
+.page{
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+}
 
 /* HEADER */
-header{background:#1c1c1c;padding:14px;}
-.top{display:flex;align-items:center;gap:14px;}
-.logo{font-size:22px;font-weight:700;color:#f5c26b;}
-.search input{width:100%;padding:10px 16px;border-radius:25px;border:none;background:#2a2a2a;color:#fff;outline:none;}
+header{
+  background:#1c1c1c;
+  padding:14px;
+}
+.top{
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+.logo{
+  font-size:22px;
+  font-weight:700;
+  color:#f5c26b;
+}
+.search input{
+  width:100%;
+  padding:10px 16px;
+  border-radius:25px;
+  border:none;
+  background:#2a2a2a;
+  color:#fff;
+  outline:none;
+}
 .search{flex:1}
 
 /* CATEGORIES */
-.categories{display:flex;gap:10px;margin-top:12px;overflow-x:auto;}
-.cat{padding:6px 14px;background:#2a2a2a;border-radius:20px;font-size:13px;cursor:pointer;white-space:nowrap;}
+.categories{
+  display:flex;
+  gap:10px;
+  margin-top:12px;
+  overflow-x:auto;
+}
+.cat{
+  padding:6px 14px;
+  background:#2a2a2a;
+  border-radius:20px;
+  font-size:13px;
+  cursor:pointer;
+  white-space:nowrap;
+}
 .cat.active{background:#1e88e5}
 
 /* SECTIONS */
 .section{padding:16px}
-.apps{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;}
-.app{background:#1f1f1f;border-radius:16px;padding:12px;cursor:pointer;}
+.apps{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+  gap:14px;
+}
+.app{
+  background:#1f1f1f;
+  border-radius:16px;
+  padding:12px;
+  cursor:pointer;
+}
 .app img{width:100%;border-radius:14px}
 .app-name{margin-top:8px;font-weight:600;font-size:14px}
 .app-meta{font-size:12px;color:#aaa}
@@ -37,26 +81,56 @@ header{background:#1c1c1c;padding:14px;}
 .back{color:#4da6ff;margin-bottom:12px;cursor:pointer}
 .details-top{display:flex;gap:14px;align-items:center}
 .details-top img{width:90px;height:90px;border-radius:20px}
-.details-top h2{text-align:center}
-.install{background:#1e88e5;padding:15px;text-align:center;border-radius:18px;font-weight:700;margin:16px 0;}
+.install{
+  background:#1e88e5;
+  padding:15px;
+  text-align:center;
+  border-radius:18px;
+  font-weight:700;
+  margin:16px 0;
+}
 .screens{display:flex;gap:12px;overflow-x:auto}
 .screens img{height:190px;border-radius:18px;cursor:pointer}
-
-/* DESC JUSTIFICADA */
-.desc{margin-top:16px;color:#ccc;line-height:1.6;text-align:justify;text-justify: inter-word; hyphens:none; word-spacing:2px; text-align-last:left;}
-@media (max-width:600px){.desc{text-align:left;}}
+.desc{margin-top:16px;color:#ccc;line-height:1.6}
 
 /* FOOTER */
-footer{margin-top:auto;background:#0b0b0b;border-top:1px solid #222;padding:20px;text-align:center;font-size:12px;color:#777;}
+footer{
+  margin-top:auto;
+  background:#0b0b0b;
+  border-top:1px solid #222;
+  padding:20px;
+  text-align:center;
+  font-size:12px;
+  color:#777;
+}
 footer a{color:#4da6ff;text-decoration:none}
 
 /* LIGHTBOX */
-#lightbox{display:none;position:fixed;z-index:9999;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);justify-content:center;align-items:center;flex-direction:column;}
-#lightbox img{max-width:90%;max-height:80%;border-radius:12px;margin-bottom:12px;}
-#lightbox .close{position:absolute;top:20px;right:30px;font-size:32px;color:#fff;cursor:pointer;}
-#lightbox .nav{position:absolute;top:50%;font-size:50px;color:#fff;cursor:pointer;user-select:none;transform:translateY(-50%);}
-#lightbox .nav.left{left:20px;} 
-#lightbox .nav.right{right:20px;}
+#lightbox {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.9);
+  justify-content: center;
+  align-items: center;
+}
+#lightbox img {
+  max-width: 90%;
+  max-height: 90%;
+  border-radius: 12px;
+}
+#lightbox .close {
+  position: absolute;
+  top: 20px;
+  right: 30px;
+  font-size: 32px;
+  color: #fff;
+  cursor: pointer;
+}
 </style>
 </head>
 <body>
@@ -99,28 +173,21 @@ footer a{color:#4da6ff;text-decoration:none}
 </div>
 
 <!-- LIGHTBOX -->
-<div id="lightbox">
-  <span class="close" onclick="closeLightbox()">&times;</span>
+<div id="lightbox" onclick="closeLightbox()">
+  <span class="close">&times;</span>
   <img id="lightbox-img" src="">
-  <div class="nav left" onclick="prevSlide()">&#10094;</div>
-  <div class="nav right" onclick="nextSlide()">&#10095;</div>
 </div>
 
 <script>
-const home = document.getElementById('home');
-const details = document.getElementById('details');
-const about = document.getElementById('about');
-
 let currentCat="Todos";
-let currentIndex=0;
-let currentShots=[];
 
-const appsData=[{
+const appsData=[
+{
  nome:"HolyPlay DEMO",
  categoria:"Educação",
  versao:"3.1.0",
  tamanho:"32 MB",
- desc: "HolyPlay DEMO é um aplicativo cristão projetado para oferecer uma experiência completa de entretenimento e aprendizado, reunindo conteúdos diversos que inspiram, desafiam e entretêm de maneira segura e intuitiva. Desenvolvido para jovens e adultos, o app busca unir diversão e reflexão, permitindo que cada usuário explore seu próprio caminho de descoberta espiritual e pessoal.",
+ desc:"HolyPlay DEMO é um aplicativo cristão projetado para oferecer uma experiência completa de entretenimento e aprendizado, reunindo conteúdos diversos que inspiram, desafiam e entretêm de maneira segura e intuitiva. Desenvolvido para jovens e adultos, o app busca unir diversão e reflexão, permitindo que cada usuário explore seu próprio caminho de descoberta espiritual e pessoal.",
  icon:"https://i.imgur.com/4Z9UNwL.png",
  shots:[
    "https://i.imgur.com/ZgaJFig.jpeg",
@@ -135,28 +202,33 @@ const appsData=[{
    "https://i.imgur.com/ZWvKKAI.jpeg",
    "https://i.imgur.com/eAbpBLH.jpeg"
  ],
- link:"download.html"
-}];
+ link:"https://github.com/lyedsonmucale0-commits/HolyPlay/releases/download/V1.2/HolyPlay.apk"
+}
+];
 
-// Renderiza categorias
 function renderCategories(){
  const cats=["Todos",...new Set(appsData.map(a=>a.categoria))];
  const box=document.getElementById("cats");
  box.innerHTML="";
- cats.forEach(c=>{box.innerHTML+=`<div class="cat ${c===currentCat?'active':''}" onclick="setCat('${c}')">${c}</div>`;});
+ cats.forEach(c=>{
+   box.innerHTML+=`<div class="cat ${c===currentCat?'active':''}" onclick="setCat('${c}')">${c}</div>`;
+ });
 }
-function setCat(c){currentCat=c;renderCategories();renderApps();}
 
-// Renderiza apps
+function setCat(c){
+ currentCat=c;
+ renderCategories();
+ renderApps();
+}
+
 function renderApps(){
  const q=search.value.toLowerCase();
- const appsContainer = document.getElementById('apps');
- appsContainer.innerHTML="";
+ apps.innerHTML="";
  appsData
  .filter(a=>(currentCat==="Todos"||a.categoria===currentCat))
  .filter(a=>a.nome.toLowerCase().includes(q))
  .forEach(a=>{
-   appsContainer.innerHTML+=`
+   apps.innerHTML+=`
    <div class="app" onclick="openApp('${a.nome}')">
      <img src="${a.icon}">
      <div class="app-name">${a.nome}</div>
@@ -165,7 +237,6 @@ function renderApps(){
  });
 }
 
-// Abre detalhes do app
 function openApp(n){
  const a=appsData.find(x=>x.nome===n);
  history.pushState({page:"details"},"");
@@ -182,52 +253,43 @@ function openApp(n){
  </div>
  <div class="install" onclick="location.href='${a.link}'">INSTALAR</div>
  <div class="screens">
-   ${a.shots.map((s,i)=>`<img src="${s}" data-index="${i}" class="shot">`).join("")}
+   ${a.shots.map(s => `<img src="${s}" onclick="openLightbox('${s}')">`).join("")}
  </div>
  <div class="desc">${a.desc}</div>`;
  window.scrollTo(0,0);
 }
 
-// Lightbox
-document.addEventListener('click', function(e){
-  if(e.target.classList.contains('shot')){
-    currentIndex = parseInt(e.target.dataset.index);
-    currentShots = appsData[0].shots;
-    document.getElementById('lightbox-img').src = currentShots[currentIndex];
-    document.getElementById('lightbox').style.display='flex';
-    history.pushState({page:'lightbox'}, '');
-  }
-});
-
-function openAbout(){history.pushState({page:"about"},"");home.style.display="none";details.style.display="none";about.style.display="block";}
-function goHome(){history.back();}
-
-function closeLightbox(){document.getElementById('lightbox').style.display='none';if(history.state && history.state.page==='lightbox') history.back();}
-function nextSlide(){currentIndex = (currentIndex+1)%currentShots.length;document.getElementById('lightbox-img').src=currentShots[currentIndex];}
-function prevSlide(){currentIndex = (currentIndex-1+currentShots.length)%currentShots.length;document.getElementById('lightbox-img').src=currentShots[currentIndex];}
-
-// Fechar lightbox com botão de voltar do sistema
-window.onpopstate = () => {
-  const lb = document.getElementById('lightbox');
-  if(lb.style.display==='flex'){
-    lb.style.display='none';
-  } else {
-    home.style.display="block"; details.style.display="none"; about.style.display="none";
-  }
+function openAbout(){
+ history.pushState({page:"about"},"");
+ home.style.display="none";
+ details.style.display="none";
+ about.style.display="block";
 }
 
-// Swipe touch para celular
-const lbImg = document.getElementById('lightbox-img');
-let startX = 0;
-lbImg.addEventListener('touchstart', e => { startX = e.touches[0].clientX; });
-lbImg.addEventListener('touchend', e => {
-  const endX = e.changedTouches[0].clientX;
-  if(endX - startX > 50) prevSlide();
-  else if(startX - endX > 50) nextSlide();
-});
+function goHome(){
+ history.back();
+}
+
+window.onpopstate=()=>{
+ home.style.display="block";
+ details.style.display="none";
+ about.style.display="none";
+};
+
+// LIGHTBOX
+function openLightbox(src){
+  const lb = document.getElementById('lightbox');
+  const lbImg = document.getElementById('lightbox-img');
+  lbImg.src = src;
+  lb.style.display = 'flex';
+}
+function closeLightbox(){
+  const lb = document.getElementById('lightbox');
+  lb.style.display = 'none';
+}
 
 renderCategories();
 renderApps();
 </script>
 </body>
-</html>
+  </html>
