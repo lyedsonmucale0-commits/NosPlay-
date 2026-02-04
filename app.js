@@ -9,10 +9,14 @@ const appsData = [
     desc:"HolyPlay DEMO é um aplicativo cristão projetado para oferecer uma experiência completa de entretenimento e aprendizado, reunindo conteúdos diversos que inspiram, desafiam e entretêm de maneira segura e intuitiva. Desenvolvido para jovens e adultos, o app busca unir diversão e reflexão, permitindo que cada usuário explore seu próprio caminho de descoberta espiritual e pessoal.",
     icon: "https://i.imgur.com/4Z9UNwL.png",
     shots: [
-      "https://i.imgur.com/vKuE823.jpeg",
-      "https://i.imgur.com/18bFIN2.jpeg",
-      "https://i.imgur.com/qyBzUaE.jpeg",
-      "https://i.imgur.com/FVzr421.jpeg"
+   "https://i.imgur.com/vKuE823.jpeg",
+   "https://i.imgur.com/18bFIN2.jpeg",
+   "https://i.imgur.com/qyBzUaE.jpeg",
+   "https://i.imgur.com/FVzr421.jpeg",
+   "https://i.imgur.com/xh4gX3h.jpeg",
+   "https://i.imgur.com/Aq8zr3O.jpeg",
+   "https://i.imgur.com/vD5udWA.jpeg",
+   "https://i.imgur.com/Zi5kAjp.jpeg",
     ],
     link: "https://github.com/lyedsonmucale0-commits/HolyPlay/releases/download/V1.2/HolyPlay.apk"
   }
