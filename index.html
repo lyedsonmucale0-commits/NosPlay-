@@ -2,7 +2,7 @@
 <html lang="pt">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>NosPlay</title>
 
 <!-- Fonte -->
@@ -13,12 +13,12 @@
 <meta name="theme-color" content="#1e88e5">
 
 <!-- iOS -->
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
 <!-- CSS -->
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="style.css">
 </head>
 
 <body>
@@ -69,7 +69,7 @@
 </div>
 
 <!-- JS -->
-<script src="js/app.js"></script>
+<script src="app.js"></script>
 
 <!-- Service Worker -->
 <script>
@@ -80,6 +80,19 @@ if ("serviceWorker" in navigator) {
       .catch(err => console.log("Erro no SW:", err));
   });
 }
+</script>
+
+  <script>
+document.addEventListener('touchstart', function(event) {
+  if (event.touches.length > 1) {
+    event.preventDefault();
+  }
+}, { passive: false });
+
+// Bloquear gesto de pinch no iOS Safari
+document.addEventListener('gesturestart', function(e) {
+  e.preventDefault();
+});
 </script>
 
 </body>
