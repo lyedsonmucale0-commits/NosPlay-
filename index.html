@@ -2,98 +2,86 @@
 <html lang="pt">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NosPlay</title>
 
 <!-- Fonte -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
-<!-- PWA -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1e88e5">
-
-<!-- iOS -->
-<link rel="apple-touch-icon" href="icon-192.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
 <!-- CSS -->
 <link rel="stylesheet" href="style.css">
-</head>
 
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="firebase.js"></script>
+
+</head>
 <body>
 <div class="page">
 
-<header>
-  <div class="top">
-    <div class="logo">NosPlay</div>
-    <div class="search">
-      <input id="search" placeholder="Pesquisar apps..." oninput="renderApps()">
+  <header>
+    <div class="top">
+      <div class="logo">NosPlay</div>
+      <div class="search">
+        <input id="search" placeholder="Pesquisar apps...">
+      </div>
     </div>
-  </div>
-  <div class="categories" id="cats"></div>
-</header>
+    <div class="categories" id="cats"></div>
+  </header>
 
-<section id="home" class="section">
-  <div class="apps" id="apps"></div>
-</section>
+  <section id="home" class="section">
+    <div class="apps" id="apps"></div>
+  </section>
 
-<section id="details"></section>
+  <section id="details"></section>
 
-<section id="about">
-  <div class="back" onclick="goHome()">← Voltar</div>
-  <h2>Sobre a NosPlay</h2>
-  <p class="desc">
-    A NosPlay é uma plataforma independente para distribuição de aplicações Android.
-    Não hospedamos arquivos nos nossos servidores.
-  </p>
-  <h3>Política</h3>
-  <p class="desc">
-    Todos os aplicativos pertencem aos seus respectivos desenvolvedores.
-    Caso seja detentor de direitos e queira remover algum conteúdo,
-    entre em contacto.
-  </p>
-</section>
-
-<footer>
-© 2025 NosPlay — Todos os direitos reservados<br>
-<a href="#" onclick="openAbout()">Sobre / Política</a>
-</footer>
+  <section id="about">
+    <div class="back" onclick="goHome()">← Voltar</div>
+    <h2>Sobre a NosPlay</h2>
+    <p class="desc">
+      A NosPlay é uma plataforma independente para distribuição de apps Android.
+      Não hospedamos arquivos nos nossos servidores.
+    </p>
+    <h3>Política</h3>
+    <p class="desc">
+      Todos os aplicativos pertencem aos seus respectivos desenvolvedores.
+      Caso seja detentor de direitos e queira remover algum conteúdo,
+      entre em contacto.
+    </p>
+  </section>
 
 </div>
 
 <!-- LIGHTBOX -->
-<div id="lightbox" onclick="closeLightbox()">
-  <span class="close">&times;</span>
+<div id="lightbox">
+  <span id="prev-btn" onclick="prevSlide()">&#10094;</span>
+  <span id="next-btn" onclick="nextSlide()">&#10095;</span>
+  <span class="close" onclick="closeLightbox()">&times;</span>
   <img id="lightbox-img">
 </div>
 
 <!-- JS -->
 <script src="app.js"></script>
 
-<!-- Service Worker -->
 <script>
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js")
-      .then(() => console.log("PWA ativa 🚀"))
-      .catch(err => console.log("Erro no SW:", err));
+  // Botão físico do sistema -> voltar
+  window.addEventListener("popstate", () => {
+    if (lightbox.style.display === "flex") closeLightbox();
+    else if (details.style.display === "block") goHome();
   });
-}
+
+  // Atualizar lista quando pesquisar
+  document.getElementById("search").addEventListener("input", () => {
+    renderApps();
+  });
 </script>
 
-  <script>
-document.addEventListener('touchstart', function(event) {
-  if (event.touches.length > 1) {
-    event.preventDefault();
-  }
-}, { passive: false });
 
-// Bloquear gesto de pinch no iOS Safari
-document.addEventListener('gesturestart', function(e) {
-  e.preventDefault();
-});
-</script>
+  <footer>
+    © 2025 NosPlay — Todos os direitos reservados<br>
+    <a href="#" onclick="openAbout()">Sobre / Política</a>
+  </footer>
 
 </body>
 </html>
