@@ -37,7 +37,7 @@ const appsData = [
       "https://i.imgur.com/vD5udWA.jpeg",
       "https://i.imgur.com/Zi5kAjp.jpeg"
     ],
-    link: "/.netlify/functions/download?file=HolyPlay.apk"
+    link: "https://nosplay.netlify.app/.netlify/functions/download?file=HolyPlay.apk"
   }
 ];
 
