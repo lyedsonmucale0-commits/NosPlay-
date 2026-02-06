@@ -190,23 +190,21 @@ function openApp(name) {
   `;
 
   history.pushState({ page: "details", app: name }, "", "#details");
-  // ==============================
-// INSTALAR APP (DOWNLOAD PARA NAVEGADOR)
 // ==============================
-function installApp(appName, link) {
-  // Incrementa o contador de downloads no Firebase
+// INSTALL APP (GLOBAL)
+// ==============================
+window.installApp = function (appName, link) {
+  // Incrementa downloads
   db.ref(`apps/${appName}/downloads`)
     .transaction(current => (current || 0) + 1);
 
-  // Mensagem para o usuário
   alert(
     "📦 O download será aberto no navegador.\n\n" +
     "Após baixar, instale o aplicativo manualmente."
   );
 
-  // Abrir link em nova aba
   window.open(link, "_blank");
-}
+};
 
   window.scrollTo(0,0);
   updateMainData();
