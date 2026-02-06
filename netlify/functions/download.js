@@ -1,50 +1,53 @@
 // netlify/functions/download.js
 
+// Para Node 18+ (Netlify usa Node 22), podemos usar fetch global
+// Se quiser usar node-fetch, é só instalar e importar
+
 export async function handler(event, context) {
-  try {
-    // Pega o nome do app da query string: ?app=HolyPlay
-    const appName = event.queryStringParameters?.app;
-    if (!appName) {
-      return {
-        statusCode: 400,
-        body: "Parâmetro 'app' é necessário"
-      };
-    }
-
-    // Mapeamento dos APKs
-    const apps = {
-      "HolyPlay": "https://github.com/lyedsonmucale0-commits/NosPlayAPK/releases/download/V1.2/HolyPlay.apk"
-      // Se tiver outros apps, adicione aqui
-    };
-
-    const url = apps[appName];
-    if (!url) {
-      return {
-        statusCode: 404,
-        body: "App não encontrado"
-      };
-    }
-
-    // Faz fetch do arquivo
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Erro ao baixar o arquivo");
-
-    const arrayBuffer = await res.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
+  const file = event.queryStringParameters?.file;
+  if (!file) {
     return {
-      statusCode: 200,
-      headers: {
-        "Content-Type": "application/vnd.android.package-archive",
-        "Content-Disposition": `attachment; filename="${appName}.apk"`
-      },
-      body: buffer.toString("base64"),
-      isBase64Encoded: true
-    };
-  } catch (err) {
-    return {
-      statusCode: 500,
-      body: "Erro interno: " + err.message
+      statusCode: 400,
+      body: "Parâmetro 'file' é necessário"
     };
   }
-      }
+
+  const GITHUB_TOKEN = process.env.GITHUB_TOKEN; // variavel do Netlify
+  const OWNER = "lyedsonmucale0-commits";
+  const REPO = "NosPlayAPK";
+  const TAG = "V1.2";
+
+  if (GITHUB_TOKEN) {
+    // Repositório privado
+    const url = `https://api.github.com/repos/${OWNER}/${REPO}/releases/tags/${TAG}`;
+    try {
+      const res = await fetch(url, {
+        headers: { 
+          Authorization: `token ${GITHUB_TOKEN}`,
+          Accept: "application/vnd.github.v3+json"
+        }
+      });
+      if (!res.ok) throw new Error("Erro ao acessar GitHub API");
+      const data = await res.json();
+      const asset = data.assets.find(a => a.name === file);
+      if (!asset) throw new Error("Arquivo não encontrado no release");
+
+      return {
+        statusCode: 302,
+        headers: { Location: asset.browser_download_url }
+      };
+    } catch (err) {
+      return {
+        statusCode: 500,
+        body: `Erro: ${err.message}`
+      };
+    }
+  } else {
+    // Repositório público
+    const publicUrl = `https://github.com/${OWNER}/${REPO}/releases/download/${TAG}/${file}`;
+    return {
+      statusCode: 302,
+      headers: { Location: publicUrl }
+    };
+  }
+}
