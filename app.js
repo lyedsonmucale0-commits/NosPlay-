@@ -128,6 +128,7 @@ function checkScroll() {
   }
 }
 
+
 // ==============================
 // DETALHES DO APP
 // ==============================
@@ -166,7 +167,21 @@ function openApp(name) {
       </div>
     </div>
 
+    <!-- BOTÃO INSTALAR -->
     <div class="install" onclick="installApp('${a.nome}','${a.link}')">INSTALAR</div>
+
+    <!-- BARRA DE PROGRESSO -->
+    <div id="download-progress" style="
+        display:none;
+        width:0%;
+        height:24px;
+        background:#2962ff;
+        color:white;
+        text-align:center;
+        line-height:24px;
+        border-radius:4px;
+        margin:10px 0;
+    "></div>
 
     <div class="screens">
       ${a.shots.map((s,i)=>`<img src="${s}" onclick="openLightbox(${i})">`).join("")}
@@ -189,25 +204,46 @@ function openApp(name) {
     </div>
   `;
 
-  history.pushState({ page: "details", app: name }, "", "#details");
-// ==============================
-// INSTALL APP (GLOBAL)
-// ==============================
-window.installApp = function(appName, link) {
-  // Incrementa downloads no Firebase
-  db.ref(`apps/${appName}/downloads`).transaction(current => (current || 0) + 1);
+  // Incrementa downloads no Firebase ao instalar
+  window.installApp = function(appName, link) {
+    // Incrementa downloads no Firebase
+    if (typeof db !== "undefined") {
+      db.ref(`apps/${appName}/downloads`).transaction(current => (current || 0) + 1);
+    }
 
-  // Chama a função Android para baixar o APK
-  if (window.Android && window.Android.baixar) {
-    Android.baixar(link, appName);
-  } else {
-    alert(
-      "📦 O download será aberto no navegador.\n\n" +
-      "Após baixar, instale o aplicativo manualmente."
-    );
-    window.open(link, "_blank");
-  }
-};
+    const barra = document.getElementById("download-progress");
+    if (barra) {
+      barra.style.width = "0%";
+      barra.innerText = "0%";
+      barra.style.display = "block";
+    }
+
+    // Simulação de download no navegador
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 5;
+      if (barra) {
+        barra.style.width = progress + "%";
+        barra.innerText = `Baixando… ${progress}%`;
+      }
+      if (progress >= 100) {
+        clearInterval(interval);
+        if (barra) {
+          barra.innerText = "✅ Download concluído!";
+          setTimeout(() => barra.style.display = "none", 1000);
+        }
+        // Abre link no navegador (APK)
+        window.open(link, "_blank");
+      }
+    }, 100);
+
+    // Chama função AndroidBridge se existir
+    if (window.AndroidBridge && AndroidBridge.baixarComProgresso) {
+      AndroidBridge.baixarComProgresso(link, appName);
+    } else if (!(window.Android && window.Android.baixar)) {
+      alert("📦 O download será aberto no navegador.\nInstale manualmente após baixar.");
+    }
+  };
 
   window.scrollTo(0,0);
   updateMainData();
@@ -215,7 +251,7 @@ window.installApp = function(appName, link) {
 }
 
 // ==============================
-// FUNÇÃO DE DOWNLOAD COM PROGRESSO
+// FUNÇÃO DE DOWNLOAD COM PROGRESSO (ANDROID + NAVEGADOR)
 // ==============================
 function installApp(appName, link) {
   const barra = document.getElementById("download-progress");
@@ -224,31 +260,56 @@ function installApp(appName, link) {
     barra.innerText = "0%";
     barra.style.display = "block";
   }
+
+  // Simulação de download no navegador
+  let progress = 0;
+  const interval = setInterval(() => {
+    progress += 5;
+    if (barra) {
+      barra.style.width = progress + "%";
+      barra.innerText = progress + "%";
+    }
+    if (progress >= 100) {
+      clearInterval(interval);
+      if (barra) {
+        barra.innerText = "Concluído";
+        setTimeout(() => barra.style.display = "none", 1000);
+      }
+      alert("✅ Download concluído!\nInstale manualmente o APK.");
+      window.open(link, "_blank"); // Abre o APK
+    }
+  }, 100);
+}
+
+// ==============================
+// ATUALIZA A BARRA VIA ANDROID (chamada pelo JsBridge)
+// ==============================
+function updateProgress(pct) {
+  const barra = document.getElementById("download-progress");
+  const innerBar = document.getElementById("download-progress-inner");
+  if (!barra || !innerBar) return;
   
-  // Chama o JsBridge Android
-  if (window.AndroidBridge) {
-    window.AndroidBridge.baixarComProgresso(link, appName);
-  } else {
-    alert("📦 O download será aberto no navegador.\nInstale manualmente após baixar.");
-    window.open(link, "_blank");
+  if (pct > 100) pct = 100;
+  innerBar.style.width = pct + "%";
+  barra.innerText = `Baixando… ${pct}%`;
+  
+  if (pct === 100) {
+    barra.innerText = "✅ Download concluído!";
+    setTimeout(() => { barra.style.display = "none"; }, 2000);
   }
 }
 
-// Atualiza a barra em tempo real
-function updateProgress(pct) {
+// ==============================
+// FINALIZA DOWNLOAD
+// ==============================
+function downloadFinished() {
   const barra = document.getElementById("download-progress");
   if (!barra) return;
-  barra.style.width = pct + "%";
-  barra.innerText = pct + "%";
+  barra.innerText = "✅ Download concluído!";
+  const innerBar = document.getElementById("download-progress-inner");
+  if (innerBar) innerBar.style.width = "100%";
+  setTimeout(() => { barra.style.display = "none"; }, 2000);
 }
-
-// Finalização do download
-function downloadFinished() {
-  alert("✅ Download concluído!\nInstale o APK em sua pasta de Downloads.");
-  const barra = document.getElementById("download-progress");
-  if (barra) barra.style.display = "none";
-}
-
 // ==============================
 // FUNÇÕES DE NAVEGAÇÃO
 // ==============================
@@ -437,7 +498,6 @@ function updateMainData() {
 // ==============================
 renderCategories();
 renderApps();
-
 // ==============================
 // GARANTIR QUE O APP COMEÇA NO TOPO
 // ==============================
