@@ -335,3 +335,33 @@ footer a{
 
 #prev-btn{left:20px}
 #next-btn{right:20px}
+
+.installBtn {
+  position: relative;
+  padding: 12px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  background: #00c853;
+  overflow: hidden;
+  transition: background 0.2s linear;
+}
+
+.installBtn span {
+  position: relative;
+  z-index: 2;
+}
+
+.installBtn::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 0%;
+  background: rgba(255, 255, 255, 0.3);
+  z-index: 1;
+  transition: width 0.1s linear;
+}
