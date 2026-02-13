@@ -1,18 +1,28 @@
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
 
   const { tag } = req.query;
 
   const OWNER = "lyedsonmucale0-commits";
   const REPO = "NosPlayAPK";
-  const TOKEN = process.env.GITHUB_TOKEN; // só precisa se for privado
+  const TOKEN = process.env.GITHUB_TOKEN;
 
+  // 🔒 Validar tag
   if (!tag) {
     return res.status(400).send("Tag não especificada");
   }
 
+  if (!/^V\d+\.\d+$/.test(tag)) {
+    return res.status(400).send("Formato de tag inválido");
+  }
+
+  // 🔒 Bloquear acesso externo (opcional mas recomendado)
+  const userAgent = req.headers["user-agent"];
+  if (!userAgent || !userAgent.includes("NosPlayApp")) {
+    return res.status(403).send("Acesso negado");
+  }
+
   try {
 
-    // Buscar release pela tag
     const releaseRes = await fetch(
       `https://api.github.com/repos/${OWNER}/${REPO}/releases/tags/${tag}`,
       {
@@ -31,27 +41,23 @@ export default async function handler(req, res) {
 
     const releaseData = await releaseRes.json();
 
-    // Encontrar qualquer arquivo .apk
-    const asset = releaseData.assets.find(a => a.name.endsWith(".apk"));
-
-    if (!asset) {
-      return res.status(404).send("APK não encontrado neste release");
+    if (!releaseData.assets || releaseData.assets.length === 0) {
+      return res.status(404).send("Nenhum arquivo na release");
     }
 
-    // Baixar o APK
-    const fileRes = await fetch(asset.browser_download_url, {
-      headers: TOKEN ? { Authorization: `token ${TOKEN}` } : {}
-    });
+    const asset = releaseData.assets.find(a =>
+      a.name.toLowerCase().endsWith(".apk")
+    );
 
-    const buffer = await fileRes.arrayBuffer();
+    if (!asset) {
+      return res.status(404).send("APK não encontrado");
+    }
 
-    // Enviar como download
-    res.setHeader("Content-Disposition", `attachment; filename=${asset.name}`);
-    res.setHeader("Content-Type", "application/vnd.android.package-archive");
-
-    res.status(200).send(Buffer.from(buffer));
+    // 🚀 Redirecionar (não baixar no servidor)
+    return res.redirect(asset.browser_download_url);
 
   } catch (error) {
-    res.status(500).send("Erro interno ao processar download");
+    console.error(error);
+    return res.status(500).send("Erro interno");
   }
-                                          }
+};
