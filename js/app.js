@@ -19,27 +19,14 @@ if (!userId) {
 // ==============================
 // APPS DE EXEMPLO
 // ==============================
-const appsData = [
-  {
-    nome: "HolyPlay DEMO",
-    categoria: "Educação",
-    versao: "3.1.0",
-    tamanho: "32MB",
-    desc: "HolyPlay DEMO é um aplicativo cristão projetado para oferecer uma experiência completa de entretenimento e aprendizado.",
-    icon: "https://i.imgur.com/4Z9UNwL.png",
-    shots: [
-      "https://i.imgur.com/vKuE823.jpeg",
-      "https://i.imgur.com/18bFIN2.jpeg",
-      "https://i.imgur.com/qyBzUaE.jpeg",
-      "https://i.imgur.com/FVzr421.jpeg",
-      "https://i.imgur.com/xh4gX3h.jpeg",
-      "https://i.imgur.com/Aq8zr3O.jpeg",
-      "https://i.imgur.com/vD5udWA.jpeg",
-      "https://i.imgur.com/Zi5kAjp.jpeg"
-    ],
-    link: "https://nosplay.vercel.app/api/download?tag=V1.2"
-  }
-];
+// ==============================
+// CARREGAR APPS EXTERNOS
+// ==============================
+const appsData = window.NosPlayApps || [];
+
+if (!appsData.length) {
+  console.warn("Nenhum app carregado.");
+}
 
 // ==============================
 // CATEGORIAS
@@ -168,7 +155,7 @@ function openApp(name) {
     </div>
 
     <!-- BOTÃO INSTALAR -->
-    <div class="install" onclick="installApp('${a.nome}','${a.link}')">INSTALAR</div>
+    <div class="install" onclick="installApp('${a.nome}','${a.tag}')">INSTALAR</div>
 
     <!-- BARRA DE PROGRESSO -->
     <div id="download-progress" style="
@@ -276,7 +263,32 @@ function installApp(appName, link) {
         setTimeout(() => barra.style.display = "none", 1000);
       }
       alert("✅ Download concluído!\nInstale manualmente o APK.");
-      window.open(link, "_blank"); // Abre o APK
+      function installApp(appName, tag) {
+  
+  fetch(`/api/latest?tag=${tag}`)
+    .then(response => response.json())
+    .then(data => {
+      
+      if (!data.download) {
+        alert("Erro ao gerar link.");
+        return;
+      }
+      
+      const downloadLink = data.download;
+      
+      // Incrementa download no Firebase
+      if (typeof db !== "undefined") {
+        db.ref(`apps/${appName}/downloads`)
+          .transaction(current => (current || 0) + 1);
+      }
+      
+      window.open(downloadLink, "_blank");
+    })
+    .catch(error => {
+      console.error(error);
+      alert("Erro no servidor.");
+    });
+} // Abre o APK
     }
   }, 100);
 }
