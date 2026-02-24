@@ -5,6 +5,7 @@
 // Firebase já incluído no HTML
 // <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 // <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+// <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 // Configuração do seu projeto Firebase
 const firebaseConfig = {
@@ -22,31 +23,45 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 // ==============================
-// USUÁRIO ANÔNIMO
+// VARIÁVEL GLOBAL PARA USUÁRIO
+// ==============================
+if (typeof userId === "undefined") userId = null;
+
+// ==============================
+// LOGIN ANÔNIMO
 // ==============================
 firebase.auth().signInAnonymously()
   .then(() => {
-    const userId = firebase.auth().currentUser.uid; // substitui seu localStorage
+    userId = firebase.auth().currentUser.uid;
     console.log("Usuário anônimo autenticado:", userId);
-    
-    // Agora podemos chamar funções que dependem do Firebase
-    loadAverage("MeuApp");
-    getComments("MeuApp", (comments) => console.log(comments));
-    getDownloads("MeuApp", (d) => console.log(d));
+
+    // Inicializar funções que dependem do Firebase
+    initFirebaseFeatures();
   })
   .catch((error) => {
     console.error("Erro na autenticação anônima:", error);
+    // fallback: gerar ID temporário local se auth falhar
+    if (!userId) {
+      userId = "u_" + Math.random().toString(36).substr(2, 9);
+      console.warn("Usando userId temporário:", userId);
+    }
+    initFirebaseFeatures();
   });
+
 // ==============================
-// FUNÇÕES ÚTEIS PARA APP
+// FUNÇÕES QUE USAM FIREBASE
 // ==============================
+function initFirebaseFeatures() {
+  // Exemplo de inicialização
+  loadAverage("MeuApp");
+  getComments("MeuApp", (comments) => console.log("Comentários:", comments));
+  getDownloads("MeuApp", (d) => console.log("Downloads:", d));
+}
 
 // Pegar número de downloads
 function getDownloads(appName, callback) {
   const ref = db.ref(`apps/${appName}/downloads`);
-  ref.once('value', snapshot => {
-    callback(snapshot.val() || 0);
-  });
+  ref.once('value', snapshot => callback(snapshot.val() || 0));
 }
 
 // Incrementar download
@@ -58,9 +73,7 @@ function incrementDownloads(appName) {
 // Pegar avaliação média
 function getRating(appName, callback) {
   const ref = db.ref(`apps/${appName}/rating`);
-  ref.once('value', snapshot => {
-    callback(snapshot.val() || { stars: 0, votes: 0 });
-  });
+  ref.once('value', snapshot => callback(snapshot.val() || { stars: 0, votes: 0 }));
 }
 
 // Adicionar avaliação do usuário
@@ -83,29 +96,20 @@ function saveRating(appName, value) {
 function loadAverage(appName) {
   db.ref(`ratings/${appName}`).on("value", snap => {
     let total = 0, count = 0;
-    snap.forEach(s => {
-      total += s.val().value;
-      count++;
-    });
-    if (count) {
-      const avg = (total / count).toFixed(1);
-      console.log(`Média de ${appName}:`, avg);
-    }
+    snap.forEach(s => { total += s.val().value; count++; });
+    if (count) console.log(`Média de ${appName}:`, (total / count).toFixed(1));
   });
 }
 
 // Pegar comentários
 function getComments(appName, callback) {
   const ref = db.ref(`comments/${appName}`);
-  ref.once('value', snapshot => {
-    callback(snapshot.val() || {});
-  });
+  ref.once('value', snapshot => callback(snapshot.val() || {}));
 }
 
 // Adicionar comentário
 function addComment(appName, comment) {
-  const ref = db.ref(`comments/${appName}`);
-  ref.push(comment);
+  db.ref(`comments/${appName}`).push(comment);
 }
 
 // Curtir comentário
