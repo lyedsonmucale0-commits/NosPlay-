@@ -24,12 +24,19 @@ const db = firebase.database();
 // ==============================
 // USUÁRIO ANÔNIMO
 // ==============================
-userId = localStorage.getItem("nosplay_uid"); // sem let
-if (!userId) {
-  userId = "u_" + Math.random().toString(36).substr(2, 9);
-  localStorage.setItem("nosplay_uid", userId);
-}
-
+firebase.auth().signInAnonymously()
+  .then(() => {
+    const userId = firebase.auth().currentUser.uid; // substitui seu localStorage
+    console.log("Usuário anônimo autenticado:", userId);
+    
+    // Agora podemos chamar funções que dependem do Firebase
+    loadAverage("MeuApp");
+    getComments("MeuApp", (comments) => console.log(comments));
+    getDownloads("MeuApp", (d) => console.log(d));
+  })
+  .catch((error) => {
+    console.error("Erro na autenticação anônima:", error);
+  });
 // ==============================
 // FUNÇÕES ÚTEIS PARA APP
 // ==============================
