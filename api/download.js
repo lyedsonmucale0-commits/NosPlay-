@@ -1,24 +1,49 @@
+const crypto = require("crypto");
+
 module.exports = async (req, res) => {
 
-  const { tag } = req.query;
+  const { tag, expires, signature, appId } = req.query;
 
   const OWNER = "lyedsonmucale0-commits";
   const REPO = "NosPlayAPK";
-  const TOKEN = process.env.GITHUB_TOKEN;
 
-  // 🔒 Validar tag
-  if (!tag) {
-    return res.status(400).send("Tag não especificada");
+  const TOKEN = process.env.GITHUB_TOKEN;
+  const SECRET = process.env.DOWNLOAD_SECRET;
+
+  const VALID_APP_ID = "NosPlay-Android-2026";
+
+  if (!SECRET) {
+    return res.status(500).send("Configuração inválida");
+  }
+
+  // 🔐 Verificar App ID
+  if (!appId || appId !== VALID_APP_ID) {
+    return res.status(403).send("App não autorizado");
+  }
+
+  // 🔐 Validar parâmetros
+  if (!tag || !expires || !signature) {
+    return res.status(400).send("Parâmetros inválidos");
   }
 
   if (!/^V\d+\.\d+$/.test(tag)) {
-    return res.status(400).send("Formato de tag inválido");
+    return res.status(400).send("Formato inválido");
   }
 
-  // 🔒 Bloquear acesso externo (opcional mas recomendado)
-  const userAgent = req.headers["user-agent"];
-  if (!userAgent || !userAgent.includes("NosPlayApp")) {
-    return res.status(403).send("Acesso negado");
+  if (Date.now() > parseInt(expires)) {
+    return res.status(403).send("Link expirado");
+  }
+
+  // 🔐 Validar assinatura
+  const data = `${tag}:${expires}:${appId}`;
+
+  const expectedSignature = crypto
+    .createHmac("sha256", SECRET)
+    .update(data)
+    .digest("hex");
+
+  if (signature !== expectedSignature) {
+    return res.status(403).send("Assinatura inválida");
   }
 
   try {
@@ -36,14 +61,10 @@ module.exports = async (req, res) => {
     );
 
     if (!releaseRes.ok) {
-      return res.status(404).send("Release não encontrado");
+      return res.status(404).send("Release não encontrada");
     }
 
     const releaseData = await releaseRes.json();
-
-    if (!releaseData.assets || releaseData.assets.length === 0) {
-      return res.status(404).send("Nenhum arquivo na release");
-    }
 
     const asset = releaseData.assets.find(a =>
       a.name.toLowerCase().endsWith(".apk")
@@ -53,7 +74,6 @@ module.exports = async (req, res) => {
       return res.status(404).send("APK não encontrado");
     }
 
-    // 🚀 Redirecionar (não baixar no servidor)
     return res.redirect(asset.browser_download_url);
 
   } catch (error) {
