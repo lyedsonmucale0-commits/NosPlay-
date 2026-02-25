@@ -10,49 +10,65 @@
 
 <!-- CSS -->
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/log.css">
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="js/firebase.js"></script>
 
 <!-- PWA -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1e88e5">
 
-<!-- iOS / ícones -->
-<link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
 </head>
 <body>
+
 <div class="page">
 
-  <!-- HEADER -->
-  <header>
-    <div class="top">
-      <div class="logo">NosPlay</div>
-      <div class="search">
-        <input id="search" placeholder="Pesquisar apps...">
-      </div>
+  <!-- LOGIN -->
+  <section id="login" class="section flex-center">
+    <h2>Login na NosPlay</h2>
+    <div class="login-box">
+      <input type="email" id="login-email" placeholder="Email">
+      <input type="password" id="login-senha" placeholder="Senha">
+      <button id="login-btn">Entrar</button>
+      <button id="login-google-btn">Entrar com Google</button>
+      <button id="show-register">Criar conta</button>
     </div>
-    <div class="categories" id="cats"></div>
-  </header>
+  </section>
+
+  <!-- REGISTRO -->
+  <section id="register" class="section flex-center" style="display:none;">
+    <h2>Registrar</h2>
+    <div class="register-box">
+      <input type="email" id="reg-email" placeholder="Email">
+      <input type="password" id="reg-senha" placeholder="Senha">
+      <button id="reg-btn">Criar conta</button>
+      <button id="back-to-login">Voltar</button>
+    </div>
+  </section>
 
   <!-- HOME / LISTA DE APPS -->
-  <section id="home" class="section">
+  <section id="home" class="section" style="display:none;">
+    <header>
+      <div class="top">
+        <div class="logo">NosPlay</div>
+        <div class="search">
+          <input id="search" placeholder="Pesquisar apps...">
+        </div>
+      </div>
+      <div class="categories" id="cats"></div>
+    </header>
     <div class="apps" id="apps"></div>
   </section>
 
   <!-- DETALHES DO APP -->
-  <section id="details"></section>
+  <section id="details" style="display:none;"></section>
 
   <!-- SOBRE / POLÍTICA -->
-  <section id="about">
+  <section id="about" style="display:none;">
     <div class="back" onclick="goHome()">← Voltar</div>
     <h2>Sobre a NosPlay</h2>
     <p class="desc">
@@ -68,10 +84,11 @@
   </section>
 
 </div>
+
+<!-- PROGRESSO DE DOWNLOAD -->
 <div id="download-progress" style="display:none; width:0%; height:24px; background:#2962ff; color:white; text-align:center; line-height:24px; border-radius:4px; margin:10px 0;"></div>
 
-<div class="install" onclick="installApp('${a.nome}','${a.link}')">INSTALAR</div>
-<!-- LIGHTBOX PARA PRINTS -->
+<!-- LIGHTBOX -->
 <div id="lightbox">
   <span id="prev-btn" onclick="prevSlide()">&#10094;</span>
   <span id="next-btn" onclick="nextSlide()">&#10095;</span>
@@ -79,27 +96,22 @@
   <img id="lightbox-img">
 </div>
 
-<!-- JS PRINCIPAL -->
+<!-- JS Apps -->
 <script src="/apps/HolyPlay.js"></script>
 <script src="/js/app.js"></script>
+<script src="/js/log.js"></script>
 
 <script>
-  // Botão físico do Android / navegador -> voltar
-  window.addEventListener("popstate", () => {
-    const lightbox = document.getElementById("lightbox");
-    const details = document.getElementById("details");
-    const home = document.getElementById("home");
-
-    if (lightbox.style.display === "flex") closeLightbox();
-    else if (details.style.display === "block") goHome();
-  });
-
-  // Atualizar lista quando pesquisar
+  // ---------------------------
+  // Pesquisa de apps
+  // ---------------------------
   document.getElementById("search").addEventListener("input", () => {
     renderApps();
   });
 
-  // Service Worker PWA
+  // ---------------------------
+  // PWA
+  // ---------------------------
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
       navigator.serviceWorker.register("sw.js")
