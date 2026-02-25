@@ -1,13 +1,15 @@
 // ==============================
-// NOSPLAY — Firebase Config
+// NOSPLAY — Firebase Config (Sem login anônimo)
 // ==============================
 
 // Firebase já incluído no HTML
 // <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-// <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 // <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+// <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
-// Configuração do seu projeto Firebase
+// ------------------------------
+// CONFIGURAÇÃO DO PROJETO
+// ------------------------------
 const firebaseConfig = {
   apiKey: "AIzaSyCm2A5Pd6FJU1yrntA_lNDUDsVEymjEJ9M",
   authDomain: "nosplay-705d6.firebaseapp.com",
@@ -22,98 +24,140 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// ==============================
+// ------------------------------
 // VARIÁVEL GLOBAL PARA USUÁRIO
-// ==============================
-if (typeof userId === "undefined") userId = null;
+// ------------------------------
+let currentUser = null;
 
-// ==============================
-// LOGIN ANÔNIMO
-// ==============================
-firebase.auth().signInAnonymously()
-  .then(() => {
-    userId = firebase.auth().currentUser.uid;
-    console.log("Usuário anônimo autenticado:", userId);
+// ------------------------------
+// DETECTAR ESTADO DE LOGIN
+// ------------------------------
+firebase.auth().onAuthStateChanged(user => {
+  currentUser = user;
+  if (user) {
+    console.log("Usuário logado:", user.email || user.displayName || user.uid);
+  } else {
+    console.log("Nenhum usuário logado");
+  }
+});
 
-    // Inicializar funções que dependem do Firebase
-    initFirebaseFeatures();
-  })
-  .catch((error) => {
-    console.error("Erro na autenticação anônima:", error);
-    // fallback: gerar ID temporário local se auth falhar
-    if (!userId) {
-      userId = "u_" + Math.random().toString(36).substr(2, 9);
-      console.warn("Usando userId temporário:", userId);
-    }
-    initFirebaseFeatures();
-  });
-
-// ==============================
-// FUNÇÕES QUE USAM FIREBASE
-// ==============================
-function initFirebaseFeatures() {
-  // Exemplo de inicialização
-  loadAverage("MeuApp");
-  getComments("MeuApp", (comments) => console.log("Comentários:", comments));
-  getDownloads("MeuApp", (d) => console.log("Downloads:", d));
+// ------------------------------
+// LOGIN COM EMAIL
+// ------------------------------
+function loginEmail(email, senha) {
+  firebase.auth().signInWithEmailAndPassword(email, senha)
+    .then(res => {
+      currentUser = res.user;
+      console.log("Login com email realizado:", currentUser.email);
+    })
+    .catch(err => {
+      console.error("Erro no login:", err.message);
+      alert("Erro no login: " + err.message);
+    });
 }
 
-// Pegar número de downloads
-function getDownloads(appName, callback) {
-  const ref = db.ref(`apps/${appName}/downloads`);
-  ref.once('value', snapshot => callback(snapshot.val() || 0));
+// ------------------------------
+// REGISTRO COM EMAIL
+// ------------------------------
+function registerEmail(email, senha) {
+  firebase.auth().createUserWithEmailAndPassword(email, senha)
+    .then(res => {
+      currentUser = res.user;
+      console.log("Conta criada com sucesso:", currentUser.email);
+      alert(`Conta criada: ${currentUser.email}`);
+    })
+    .catch(err => {
+      console.error("Erro no registro:", err.message);
+      alert("Erro no registro: " + err.message);
+    });
 }
 
-// Incrementar download
+// ------------------------------
+// LOGIN COM GOOGLE
+// ------------------------------
+function loginGoogle() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  firebase.auth().signInWithPopup(provider)
+    .then(res => {
+      currentUser = res.user;
+      console.log("Login Google realizado:", currentUser.email);
+    })
+    .catch(err => {
+      console.error("Erro no login Google:", err.message);
+      alert("Erro no login Google: " + err.message);
+    });
+}
+
+// ------------------------------
+// LOGOUT
+// ------------------------------
+function logout() {
+  firebase.auth().signOut()
+    .then(() => {
+      currentUser = null;
+      console.log("Usuário deslogado");
+    })
+    .catch(err => console.error("Erro ao deslogar:", err.message));
+}
+
+// ------------------------------
+// DOWNLOADS
+// ------------------------------
 function incrementDownloads(appName) {
+  if (!currentUser) { alert("Faça login antes de baixar!"); return; }
   const ref = db.ref(`apps/${appName}/downloads`);
   ref.transaction(current => (current || 0) + 1);
 }
 
-// Pegar avaliação média
-function getRating(appName, callback) {
-  const ref = db.ref(`apps/${appName}/rating`);
-  ref.once('value', snapshot => callback(snapshot.val() || { stars: 0, votes: 0 }));
+// ------------------------------
+// RATINGS
+// ------------------------------
+function saveRating(appName, stars) {
+  if (!currentUser) { alert("Faça login para avaliar!"); return; }
+  const uid = currentUser.uid;
+  db.ref(`ratings/${appName}/${uid}`).set({ value: stars });
+  updateAverageRating(appName);
 }
 
-// Adicionar avaliação do usuário
-function addRating(appName, stars) {
-  const ref = db.ref(`apps/${appName}/rating`);
-  ref.transaction(current => {
-    current = current || { stars: 0, votes: 0 };
-    current.stars += stars;
-    current.votes += 1;
-    return current;
-  });
-}
-
-// Salvar avaliação individual do usuário
-function saveRating(appName, value) {
-  db.ref(`ratings/${appName}/${userId}`).set({ value });
-}
-
-// Calcular média de avaliações
-function loadAverage(appName) {
-  db.ref(`ratings/${appName}`).on("value", snap => {
+function updateAverageRating(appName) {
+  db.ref(`ratings/${appName}`).once("value", snap => {
     let total = 0, count = 0;
     snap.forEach(s => { total += s.val().value; count++; });
-    if (count) console.log(`Média de ${appName}:`, (total / count).toFixed(1));
+    db.ref(`apps/${appName}/rating`).set({ stars: total, votes: count });
   });
 }
 
-// Pegar comentários
-function getComments(appName, callback) {
-  const ref = db.ref(`comments/${appName}`);
-  ref.once('value', snapshot => callback(snapshot.val() || {}));
-}
-
-// Adicionar comentário
-function addComment(appName, comment) {
+// ------------------------------
+// COMENTÁRIOS
+// ------------------------------
+function addComment(appName, text) {
+  if (!currentUser) { alert("Faça login para comentar!"); return; }
+  const comment = {
+    userId: currentUser.uid,
+    name: currentUser.displayName || currentUser.email || "Anônimo",
+    text,
+    createdAt: Date.now()
+  };
   db.ref(`comments/${appName}`).push(comment);
 }
 
-// Curtir comentário
-function likeCommentFirebase(appName, commentId) {
-  const ref = db.ref(`comments/${appName}/${commentId}/likes/${userId}`);
+function likeComment(appName, commentId) {
+  if (!currentUser) { alert("Faça login para curtir!"); return; }
+  const ref = db.ref(`comments/${appName}/${commentId}/likes/${currentUser.uid}`);
   ref.once("value", snap => snap.exists() ? ref.remove() : ref.set(true));
+}
+
+// ------------------------------
+// FUNÇÕES DE UTILIDADE
+// ------------------------------
+function getDownloads(appName, callback) {
+  db.ref(`apps/${appName}/downloads`).once("value", snap => callback(snap.val() || 0));
+}
+
+function getRating(appName, callback) {
+  db.ref(`apps/${appName}/rating`).once("value", snap => callback(snap.val() || { stars: 0, votes: 0 }));
+}
+
+function getComments(appName, callback) {
+  db.ref(`comments/${appName}`).once("value", snap => callback(snap.val() || {}));
 }
