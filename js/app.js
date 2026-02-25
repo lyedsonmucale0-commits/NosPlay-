@@ -1,5 +1,5 @@
 // ==============================
-// NOSPLAY — App.js (Corrigido SVG Download)
+// NOSPLAY — App.js (v2 com login Email/Google)
 // ==============================
 
 let currentCat = "Todos";
@@ -7,26 +7,12 @@ let currentSlide = 0;
 let currentShots = [];
 let currentAppName = null;
 
-// ==============================
-// USUÁRIO ANÔNIMO
-// ==============================
-let userId = localStorage.getItem("nosplay_uid");
-if (!userId) {
-  userId = "u_" + Math.random().toString(36).substr(2, 9);
-  localStorage.setItem("nosplay_uid", userId);
-}
 
 // ==============================
-// APPS DE EXEMPLO
-// ==============================
-// ==============================
-// CARREGAR APPS EXTERNOS
+// APPS DE EXEMPLO / EXTERNOS
 // ==============================
 const appsData = window.NosPlayApps || [];
-
-if (!appsData.length) {
-  console.warn("Nenhum app carregado.");
-}
+if (!appsData.length) console.warn("Nenhum app carregado.");
 
 // ==============================
 // CATEGORIAS
@@ -37,7 +23,11 @@ function renderCategories() {
   if (!box) return;
   box.innerHTML = "";
   cats.forEach(c => {
-    box.innerHTML += `<div class="cat ${c === currentCat ? "active" : ""}" onclick="setCat('${c}')">${c}</div>`;
+    const div = document.createElement("div");
+    div.className = "cat" + (c === currentCat ? " active" : "");
+    div.innerText = c;
+    div.onclick = () => setCat(c);
+    box.appendChild(div);
   });
 }
 
@@ -71,7 +61,7 @@ function renderApps() {
         <div class="app-info">
           <div id="rating-${a.nome}">0☆</div>
           <div>${a.tamanho}</div>
-          <div style="display:flex;align-items:center;gap:4px;" id="downloads-wrapper-${a.nome}">
+          <div style="display:flex;align-items:center;gap:4px;">
             <svg xmlns="http://www.w3.org/2000/svg" height="20" viewBox="0 0 24 24" width="20" fill="#1e88e5">
               <path d="M0 0h24v24H0z" fill="none"/>
               <path d="M5 20h14v-2H5v2zm7-18l-5 5h3v6h4v-6h3l-5-5z"/>
@@ -82,39 +72,35 @@ function renderApps() {
       `;
       apps.appendChild(appEl);
 
-      // BUSCAR DOWNLOADS REAIS
-      db.ref(`apps/${a.nome}/downloads`).once("value", snap => {
-        const val = snap.val() || 0;
-        const el = document.getElementById(`downloads-${a.nome}`);
-        if (el) el.textContent = val.toLocaleString();
-      });
+      // Atualiza downloads
+      if (typeof db !== "undefined") {
+        db.ref(`apps/${a.nome}/downloads`).once("value", snap => {
+          const val = snap.val() || 0;
+          const el = document.getElementById(`downloads-${a.nome}`);
+          if (el) el.textContent = val.toLocaleString();
+        });
 
-      // BUSCAR AVALIAÇÃO MÉDIA
-      db.ref(`apps/${a.nome}/rating`).once("value", snap => {
-        const val = snap.val() || { stars: 0, votes: 0 };
-        const avg = val.votes ? (val.stars / val.votes).toFixed(1) : 0;
-        const el = document.getElementById(`rating-${a.nome}`);
-        if (el) el.textContent = avg + "☆";
-      });
+        // Atualiza rating
+        db.ref(`apps/${a.nome}/rating`).once("value", snap => {
+          const val = snap.val() || { stars: 0, votes: 0 };
+          const avg = val.votes ? (val.stars / val.votes).toFixed(1) : 0;
+          const el = document.getElementById(`rating-${a.nome}`);
+          if (el) el.textContent = avg + "☆";
+        });
+      }
     });
 
-  window.scrollTo(0, 0);
   checkScroll();
 }
 
 // ==============================
-// BLOQUEAR SCROLL SE POUCOS APPS
+// BLOQUEIO SCROLL SE POUCOS APPS
 // ==============================
 function checkScroll() {
   const homeSection = document.getElementById("home");
   if (!homeSection) return;
-  if (homeSection.scrollHeight <= window.innerHeight) {
-    document.body.style.overflow = "hidden"; 
-  } else {
-    document.body.style.overflow = "auto"; 
-  }
+  document.body.style.overflow = homeSection.scrollHeight <= window.innerHeight ? "hidden" : "auto";
 }
-
 
 // ==============================
 // DETALHES DO APP
@@ -131,9 +117,9 @@ function openApp(name) {
   home.style.display = "none";
   details.style.display = "block";
 
+  // Renderiza detalhes
   details.innerHTML = `
     <div class="back" onclick="goHome()">← Voltar</div>
-
     <div class="details-top">
       <img src="${a.icon}">
       <div>
@@ -154,10 +140,8 @@ function openApp(name) {
       </div>
     </div>
 
-    <!-- BOTÃO INSTALAR -->
-    <div class="install" onclick="installApp('${a.nome}','${a.tag}')">INSTALAR</div>
+    <div class="install" id="install-btn-detail">INSTALAR</div>
 
-    <!-- BARRA DE PROGRESSO -->
     <div id="download-progress" style="
         display:none;
         width:0%;
@@ -191,46 +175,17 @@ function openApp(name) {
     </div>
   `;
 
-  // Incrementa downloads no Firebase ao instalar
-  window.installApp = function(appName, link) {
-    // Incrementa downloads no Firebase
-    if (typeof db !== "undefined") {
-      db.ref(`apps/${appName}/downloads`).transaction(current => (current || 0) + 1);
-    }
-
-    const barra = document.getElementById("download-progress");
-    if (barra) {
-      barra.style.width = "0%";
-      barra.innerText = "0%";
-      barra.style.display = "block";
-    }
-
-    // Simulação de download no navegador
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += 5;
-      if (barra) {
-        barra.style.width = progress + "%";
-        barra.innerText = `Baixando… ${progress}%`;
+  // Botão instalar no detalhe
+  const installBtn = document.getElementById("install-btn-detail");
+  if (installBtn) {
+    installBtn.onclick = () => {
+      if (!currentUser) {
+        alert("Faça login com Email ou Google para baixar este app!");
+        return;
       }
-      if (progress >= 100) {
-        clearInterval(interval);
-        if (barra) {
-          barra.innerText = "✅ Download concluído!";
-          setTimeout(() => barra.style.display = "none", 1000);
-        }
-        // Abre link no navegador (APK)
-        window.open(link, "_blank");
-      }
-    }, 100);
-
-    // Chama função AndroidBridge se existir
-    if (window.AndroidBridge && AndroidBridge.baixarComProgresso) {
-      AndroidBridge.baixarComProgresso(link, appName);
-    } else if (!(window.Android && window.Android.baixar)) {
-      alert("📦 O download será aberto no navegador.\nInstale manualmente após baixar.");
+      baixarAPK(a);
     }
-  };
+  }
 
   window.scrollTo(0,0);
   updateMainData();
@@ -238,197 +193,41 @@ function openApp(name) {
 }
 
 // ==============================
-// FUNÇÃO DE DOWNLOAD COM PROGRESSO (ANDROID + NAVEGADOR)
+// DOWNLOAD APK
 // ==============================
-function installApp(appName, link) {
-  const barra = document.getElementById("download-progress");
-  if (barra) {
-    barra.style.width = "0%";
-    barra.innerText = "0%";
-    barra.style.display = "block";
-  }
-
-  // Simulação de download no navegador
-  let progress = 0;
-  const interval = setInterval(() => {
-    progress += 5;
-    if (barra) {
-      barra.style.width = progress + "%";
-      barra.innerText = progress + "%";
-    }
-    if (progress >= 100) {
-      clearInterval(interval);
-      if (barra) {
-        barra.innerText = "Concluído";
-        setTimeout(() => barra.style.display = "none", 1000);
-      }
-      alert("✅ Download concluído!\nInstale manualmente o APK.");
-      function installApp(appName, tag) {
-  
-  fetch(`/api/latest?tag=${tag}`)
-    .then(response => response.json())
-    .then(data => {
-      
-      if (!data.download) {
-        alert("Erro ao gerar link.");
-        return;
-      }
-      
-      const downloadLink = data.download;
-      
-      // Incrementa download no Firebase
-      if (typeof db !== "undefined") {
-        db.ref(`apps/${appName}/downloads`)
-          .transaction(current => (current || 0) + 1);
-      }
-      
-      window.open(downloadLink, "_blank");
-    })
-    .catch(error => {
-      console.error(error);
-      alert("Erro no servidor.");
-    });
-} // Abre o APK
-    }
-  }, 100);
-}
-
-// ==============================
-// ATUALIZA A BARRA VIA ANDROID (chamada pelo JsBridge)
-// ==============================
-function updateProgress(pct) {
-  const barra = document.getElementById("download-progress");
-  const innerBar = document.getElementById("download-progress-inner");
-  if (!barra || !innerBar) return;
-  
-  if (pct > 100) pct = 100;
-  innerBar.style.width = pct + "%";
-  barra.innerText = `Baixando… ${pct}%`;
-  
-  if (pct === 100) {
-    barra.innerText = "✅ Download concluído!";
-    setTimeout(() => { barra.style.display = "none"; }, 2000);
-  }
-}
-
-// ==============================
-// FINALIZA DOWNLOAD
-// ==============================
-function downloadFinished() {
-  const barra = document.getElementById("download-progress");
-  if (!barra) return;
-  barra.innerText = "✅ Download concluído!";
-  const innerBar = document.getElementById("download-progress-inner");
-  if (innerBar) innerBar.style.width = "100%";
-  setTimeout(() => { barra.style.display = "none"; }, 2000);
-}
-// ==============================
-// FUNÇÕES DE NAVEGAÇÃO
-// ==============================
-function goHome() {
-  const home = document.getElementById("home");
-  const details = document.getElementById("details");
-  const about = document.getElementById("about");
-  if(home) home.style.display="block";
-  if(details) details.style.display="none";
-  if(about) about.style.display="none";
-
-  history.pushState({ page: "home" }, "", "#home");
-}
-
-function openAbout() {
-  const home = document.getElementById("home");
-  const details = document.getElementById("details");
-  const about = document.getElementById("about");
-  if(home) home.style.display="none";
-  if(details) details.style.display="none";
-  if(about) about.style.display="block";
-
-  history.pushState({ page: "about" }, "", "#about");
-}
-
-// ==============================
-// LIGHTBOX
-// ==============================
-function openLightbox(i) {
-  if (!currentAppName) return;
-  currentSlide = i;
-  const app = appsData.find(a => a.nome === currentAppName);
-  if (!app || !app.shots.length) return;
-
-  currentShots = app.shots;
-  const lightbox = document.getElementById("lightbox");
-  const img = document.getElementById("lightbox-img");
-  if (!lightbox || !img) return;
-
-  lightbox.style.display = "flex";
-  img.src = currentShots[i];
-
-  history.pushState({ page: "lightbox" }, "", "#lightbox");
-}
-
-function closeLightbox() {
-  const lightbox = document.getElementById("lightbox");
-  if (lightbox) lightbox.style.display = "none"; // apenas fecha o lightbox
-}
-
-function nextSlide() {
-  if (!currentShots.length) return;
-  currentSlide = (currentSlide + 1) % currentShots.length;
-  const img = document.getElementById("lightbox-img");
-  if (img) img.src = currentShots[currentSlide];
-}
-
-function prevSlide() {
-  if (!currentShots.length) return;
-  currentSlide = (currentSlide - 1 + currentShots.length) % currentShots.length;
-  const img = document.getElementById("lightbox-img");
-  if (img) img.src = currentShots[currentSlide];
-}
-
-window.addEventListener("keydown", (e) => {
-  const lightbox = document.getElementById("lightbox");
-  if (!lightbox || lightbox.style.display !== "flex") return;
-
-  if (e.key === "Escape") closeLightbox();
-  if (e.key === "ArrowRight") nextSlide();
-  if (e.key === "ArrowLeft") prevSlide();
-});
-
-// ==============================
-// POPSTATE — BOTÃO VOLTAR ANDROID
-// ==============================
-window.addEventListener("popstate", (event) => {
-  const state = event.state;
-  const lightbox = document.getElementById("lightbox");
-
-  if(lightbox && lightbox.style.display === "flex"){
-    closeLightbox();
+function baixarAPK(app) {
+  if (!currentUser) {
+    alert("Faça login antes de baixar.");
     return;
   }
 
-  if(!state || state.page === "home"){
-    goHome();
-  } else if(state.page === "details"){
-    const appName = state.app || currentAppName;
-    openApp(appName);
-  } else if(state.page === "about"){
-    openAbout();
-  }
-});
+  // Incrementa downloads no Firebase
+  db.ref(`apps/${app.nome}/downloads`).transaction(current => (current||0)+1);
+
+  // Baixar APK via link direto
+  const link = document.createElement("a");
+  link.href = app.apk;
+  link.download = app.nome + ".apk";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
 
 // ==============================
 // RATINGS
 // ==============================
 let selectedRating = 0;
-function rateApp(value) {
-  db.ref(`ratings/${currentAppName}/${userId}`).set({ value })
-    .then(()=> {
-      const msg = document.getElementById("rating-msg");
-      if(msg) msg.innerText = "Avaliação enviada ⭐";
-      highlightStars(value);
-      updateAverageRating(currentAppName);
-    });
+function rateApp(value){
+  if (!currentUser) {
+    alert("Faça login para avaliar.");
+    return;
+  }
+  db.ref(`ratings/${currentAppName}/${currentUser.uid}`).set({ value }).then(()=>{
+    const msg = document.getElementById("rating-msg");
+    if(msg) msg.innerText="Avaliação enviada ⭐";
+    highlightStars(value);
+    updateAverageRating(currentAppName);
+  });
 }
 
 function highlightStars(v){
@@ -437,10 +236,10 @@ function highlightStars(v){
 }
 
 function updateAverageRating(appName){
-  db.ref(`ratings/${appName}`).once("value", snap => {
-    let total = 0, count = 0;
-    snap.forEach(s => { total += s.val().value; count++; });
-    db.ref(`apps/${appName}/rating`).set({ stars: total, votes: count });
+  db.ref(`ratings/${appName}`).once("value", snap=>{
+    let total=0, count=0;
+    snap.forEach(s=>{ total+=s.val().value; count++; });
+    db.ref(`apps/${appName}/rating`).set({ stars:total, votes:count });
     updateMainData();
     renderApps();
   });
@@ -450,22 +249,26 @@ function updateAverageRating(appName){
 // COMENTÁRIOS
 // ==============================
 function sendComment(){
+  if (!currentUser) {
+    alert("Faça login para comentar.");
+    return;
+  }
+
   const cname = document.getElementById("cname");
   const ctext = document.getElementById("ctext");
-  if(!cname || !ctext || !ctext.value) return;
-
+  if(!ctext.value) return;
   db.ref(`comments/${currentAppName}`).push({
-    name: cname.value || "Anônimo",
+    userId: currentUser.uid,
+    name: cname.value||currentUser.displayName||"Anônimo",
     text: ctext.value,
-    time: Date.now()
+    createdAt: Date.now()
   });
-  ctext.value = "";
+  ctext.value="";
 }
 
 function loadComments(){
   const list = document.getElementById("comments-list");
   if(!list) return;
-
   db.ref(`comments/${currentAppName}`).on("value", snap=>{
     list.innerHTML="";
     snap.forEach(s=>{
@@ -483,26 +286,75 @@ function loadComments(){
 }
 
 function likeComment(id){
-  const ref = db.ref(`comments/${currentAppName}/${id}/likes/${userId}`);
+  if (!currentUser) {
+    alert("Faça login para curtir.");
+    return;
+  }
+  const ref = db.ref(`comments/${currentAppName}/${id}/likes/${currentUser.uid}`);
   ref.once("value", s => s.exists() ? ref.remove() : ref.set(true));
 }
 
 // ==============================
-// UPDATE RATINGS + DOWNLOADS
+// ATUALIZA RATINGS + DOWNLOADS
 // ==============================
-function updateMainData() {
-  const downloadsMain = document.getElementById("downloads-main");
-  const ratingMain = document.getElementById("rating-main");
-
-  db.ref(`apps/${currentAppName}/downloads`).once("value", snap => {
-    if (downloadsMain) downloadsMain.textContent = (snap.val() || 0).toLocaleString();
+function updateMainData(){
+  db.ref(`apps/${currentAppName}/downloads`).once("value", snap=>{
+    const el = document.getElementById("downloads-main");
+    if(el) el.textContent=(snap.val()||0).toLocaleString();
   });
 
-  db.ref(`apps/${currentAppName}/rating`).once("value", snap => {
-    const val = snap.val() || { stars:0, votes:0 };
-    const avg = val.votes ? (val.stars/val.votes).toFixed(1) : 0;
-    if (ratingMain) ratingMain.textContent = avg + "☆";
+  db.ref(`apps/${currentAppName}/rating`).once("value", snap=>{
+    const val = snap.val()||{stars:0,votes:0};
+    const avg = val.votes? (val.stars/val.votes).toFixed(1):0;
+    const el = document.getElementById("rating-main");
+    if(el) el.textContent=avg+"☆";
   });
+}
+
+// ==============================
+// NAVIGATION / LIGHTBOX
+// ==============================
+function goHome() {
+  document.getElementById("home").style.display="block";
+  document.getElementById("details").style.display="none";
+  document.getElementById("about").style.display="none";
+  history.pushState({ page:"home" },"","#home");
+}
+
+function openAbout() {
+  document.getElementById("home").style.display="none";
+  document.getElementById("details").style.display="none";
+  document.getElementById("about").style.display="block";
+  history.pushState({ page:"about" },"","#about");
+}
+
+function openLightbox(i) {
+  if (!currentAppName) return;
+  const app = appsData.find(a=>a.nome===currentAppName);
+  if (!app || !app.shots.length) return;
+  currentShots = app.shots;
+  currentSlide = i;
+  const lightbox = document.getElementById("lightbox");
+  document.getElementById("lightbox-img").src = currentShots[i];
+  lightbox.style.display="flex";
+  history.pushState({ page:"lightbox" },"","#lightbox");
+}
+
+function closeLightbox() {
+  const lightbox = document.getElementById("lightbox");
+  if(lightbox) lightbox.style.display="none";
+}
+
+function nextSlide() {
+  if (!currentShots.length) return;
+  currentSlide = (currentSlide+1)%currentShots.length;
+  document.getElementById("lightbox-img").src = currentShots[currentSlide];
+}
+
+function prevSlide() {
+  if (!currentShots.length) return;
+  currentSlide = (currentSlide-1+currentShots.length)%currentShots.length;
+  document.getElementById("lightbox-img").src = currentShots[currentSlide];
 }
 
 // ==============================
@@ -510,9 +362,4 @@ function updateMainData() {
 // ==============================
 renderCategories();
 renderApps();
-// ==============================
-// GARANTIR QUE O APP COMEÇA NO TOPO
-// ==============================
-window.onload = () => {
-  window.scrollTo(0,0);
-};
+window.onload = () => { window.scrollTo(0,0); };
