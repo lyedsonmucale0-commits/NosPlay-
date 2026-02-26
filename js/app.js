@@ -1,5 +1,5 @@
 // ==============================
-// NOSPLAY — App.js (v2 com login Email/Google)
+// NOSPLAY — App.js (Final Corrigido)
 // ==============================
 
 let currentCat = "Todos";
@@ -7,6 +7,14 @@ let currentSlide = 0;
 let currentShots = [];
 let currentAppName = null;
 
+// ==============================
+// USUÁRIO ANÔNIMO
+// ==============================
+let userId = localStorage.getItem("nosplay_uid");
+if (!userId) {
+  userId = "u_" + Math.random().toString(36).substr(2, 9);
+  localStorage.setItem("nosplay_uid", userId);
+}
 
 // ==============================
 // APPS DE EXEMPLO / EXTERNOS
@@ -140,7 +148,7 @@ function openApp(name) {
       </div>
     </div>
 
-    <div class="install" id="install-btn-detail">INSTALAR</div>
+    <div class="install" id="install-btn">INSTALAR</div>
 
     <div id="download-progress" style="
         display:none;
@@ -175,144 +183,58 @@ function openApp(name) {
     </div>
   `;
 
-  // Botão instalar no detalhe
-  const installBtn = document.getElementById("install-btn-detail");
-  if (installBtn) {
-    installBtn.onclick = () => {
-      if (!currentUser) {
-        alert("Faça login com Email ou Google para baixar este app!");
-        return;
-      }
-      baixarAPK(a);
+  // ==============================
+  // BOTÃO DE DOWNLOAD GLOBAL
+  // ==============================
+  // ==============================
+// BOTÃO DE DOWNLOAD GLOBAL
+// ==============================
+const installBtn = document.getElementById("install-btn");
+if (installBtn) {
+  installBtn.onclick = () => {
+    if (!a.apk) {
+      alert("Link do APK não disponível!");
+      return;
     }
-  }
+
+    // Inicia download direto
+    window.location.href = a.apk;
+
+    // Atualiza contador de downloads no Firebase
+    if (typeof db !== "undefined") {
+      const downloadsRef = db.ref(`apps/${a.nome}/downloads`);
+      downloadsRef.transaction(current => (current || 0) + 1);
+    }
+
+    // Atualiza barra de progresso (opcional)
+    updateProgress(100);
+  };
+}
 
   window.scrollTo(0,0);
   updateMainData();
   loadComments();
 }
 
+
 // ==============================
-// DOWNLOAD APK
+// BARRA DE PROGRESSO (para AndroidBridge, opcional)
 // ==============================
-function baixarAPK(app) {
-  if (!currentUser) {
-    alert("Faça login antes de baixar.");
-    return;
+function updateProgress(pct) {
+  const barra = document.getElementById("download-progress");
+  if (!barra) return;
+  barra.style.display = "block";
+  if (pct > 100) pct = 100;
+  barra.style.width = pct + "%";
+  barra.innerText = `Baixando… ${pct}%`;
+  if (pct === 100) {
+    barra.innerText = "✅ Download concluído!";
+    setTimeout(() => barra.style.display="none", 1500);
   }
-
-  // Incrementa downloads no Firebase
-  db.ref(`apps/${app.nome}/downloads`).transaction(current => (current||0)+1);
-
-  // Baixar APK via link direto
-  const link = document.createElement("a");
-  link.href = app.apk;
-  link.download = app.nome + ".apk";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
 }
 
 // ==============================
-// RATINGS
-// ==============================
-let selectedRating = 0;
-function rateApp(value){
-  if (!currentUser) {
-    alert("Faça login para avaliar.");
-    return;
-  }
-  db.ref(`ratings/${currentAppName}/${currentUser.uid}`).set({ value }).then(()=>{
-    const msg = document.getElementById("rating-msg");
-    if(msg) msg.innerText="Avaliação enviada ⭐";
-    highlightStars(value);
-    updateAverageRating(currentAppName);
-  });
-}
-
-function highlightStars(v){
-  document.querySelectorAll("#rating-stars span")
-    .forEach((s,i)=>s.style.color=i<v?"#f5c26b":"#555");
-}
-
-function updateAverageRating(appName){
-  db.ref(`ratings/${appName}`).once("value", snap=>{
-    let total=0, count=0;
-    snap.forEach(s=>{ total+=s.val().value; count++; });
-    db.ref(`apps/${appName}/rating`).set({ stars:total, votes:count });
-    updateMainData();
-    renderApps();
-  });
-}
-
-// ==============================
-// COMENTÁRIOS
-// ==============================
-function sendComment(){
-  if (!currentUser) {
-    alert("Faça login para comentar.");
-    return;
-  }
-
-  const cname = document.getElementById("cname");
-  const ctext = document.getElementById("ctext");
-  if(!ctext.value) return;
-  db.ref(`comments/${currentAppName}`).push({
-    userId: currentUser.uid,
-    name: cname.value||currentUser.displayName||"Anônimo",
-    text: ctext.value,
-    createdAt: Date.now()
-  });
-  ctext.value="";
-}
-
-function loadComments(){
-  const list = document.getElementById("comments-list");
-  if(!list) return;
-  db.ref(`comments/${currentAppName}`).on("value", snap=>{
-    list.innerHTML="";
-    snap.forEach(s=>{
-      const c = s.val();
-      const likes = c.likes ? Object.keys(c.likes).length : 0;
-      list.innerHTML += `
-        <div class="comment">
-          <strong>${c.name}</strong>
-          <p>${c.text}</p>
-          <button onclick="likeComment('${s.key}')">👍 ${likes}</button>
-        </div>
-      `;
-    });
-  });
-}
-
-function likeComment(id){
-  if (!currentUser) {
-    alert("Faça login para curtir.");
-    return;
-  }
-  const ref = db.ref(`comments/${currentAppName}/${id}/likes/${currentUser.uid}`);
-  ref.once("value", s => s.exists() ? ref.remove() : ref.set(true));
-}
-
-// ==============================
-// ATUALIZA RATINGS + DOWNLOADS
-// ==============================
-function updateMainData(){
-  db.ref(`apps/${currentAppName}/downloads`).once("value", snap=>{
-    const el = document.getElementById("downloads-main");
-    if(el) el.textContent=(snap.val()||0).toLocaleString();
-  });
-
-  db.ref(`apps/${currentAppName}/rating`).once("value", snap=>{
-    const val = snap.val()||{stars:0,votes:0};
-    const avg = val.votes? (val.stars/val.votes).toFixed(1):0;
-    const el = document.getElementById("rating-main");
-    if(el) el.textContent=avg+"☆";
-  });
-}
-
-// ==============================
-// NAVIGATION / LIGHTBOX
+// FUNÇÕES DE NAVEGAÇÃO / LIGHTBOX
 // ==============================
 function goHome() {
   document.getElementById("home").style.display="block";
@@ -355,6 +277,90 @@ function prevSlide() {
   if (!currentShots.length) return;
   currentSlide = (currentSlide-1+currentShots.length)%currentShots.length;
   document.getElementById("lightbox-img").src = currentShots[currentSlide];
+}
+
+// ==============================
+// RATINGS
+// ==============================
+let selectedRating = 0;
+function rateApp(value){
+  db.ref(`ratings/${currentAppName}/${userId}`).set({ value }).then(()=>{
+    const msg = document.getElementById("rating-msg");
+    if(msg) msg.innerText="Avaliação enviada ⭐";
+    highlightStars(value);
+    updateAverageRating(currentAppName);
+  });
+}
+
+function highlightStars(v){
+  document.querySelectorAll("#rating-stars span")
+    .forEach((s,i)=>s.style.color=i<v?"#f5c26b":"#555");
+}
+
+function updateAverageRating(appName){
+  db.ref(`ratings/${appName}`).once("value", snap=>{
+    let total=0, count=0;
+    snap.forEach(s=>{ total+=s.val().value; count++; });
+    db.ref(`apps/${appName}/rating`).set({ stars:total, votes:count });
+    updateMainData();
+    renderApps();
+  });
+}
+
+// ==============================
+// COMENTÁRIOS
+// ==============================
+function sendComment(){
+  const cname = document.getElementById("cname");
+  const ctext = document.getElementById("ctext");
+  if(!ctext.value) return;
+  db.ref(`comments/${currentAppName}`).push({
+    name: cname.value||"Anônimo",
+    text: ctext.value,
+    time: Date.now()
+  });
+  ctext.value="";
+}
+
+function loadComments(){
+  const list = document.getElementById("comments-list");
+  if(!list) return;
+  db.ref(`comments/${currentAppName}`).on("value", snap=>{
+    list.innerHTML="";
+    snap.forEach(s=>{
+      const c = s.val();
+      const likes = c.likes ? Object.keys(c.likes).length : 0;
+      list.innerHTML += `
+        <div class="comment">
+          <strong>${c.name}</strong>
+          <p>${c.text}</p>
+          <button onclick="likeComment('${s.key}')">👍 ${likes}</button>
+        </div>
+      `;
+    });
+  });
+}
+
+function likeComment(id){
+  const ref = db.ref(`comments/${currentAppName}/${id}/likes/${userId}`);
+  ref.once("value", s => s.exists() ? ref.remove() : ref.set(true));
+}
+
+// ==============================
+// ATUALIZA RATINGS + DOWNLOADS
+// ==============================
+function updateMainData(){
+  db.ref(`apps/${currentAppName}/downloads`).once("value", snap=>{
+    const el = document.getElementById("downloads-main");
+    if(el) el.textContent=(snap.val()||0).toLocaleString();
+  });
+
+  db.ref(`apps/${currentAppName}/rating`).once("value", snap=>{
+    const val = snap.val()||{stars:0,votes:0};
+    const avg = val.votes? (val.stars/val.votes).toFixed(1):0;
+    const el = document.getElementById("rating-main");
+    if(el) el.textContent=avg+"☆";
+  });
 }
 
 // ==============================
