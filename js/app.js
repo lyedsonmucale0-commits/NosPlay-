@@ -369,3 +369,26 @@ function updateMainData(){
 renderCategories();
 renderApps();
 window.onload = () => { window.scrollTo(0,0); };
+// BLOQUEAR ZOOM COM PINÇA
+document.addEventListener('touchstart', function(e) {
+  if (e.touches.length > 1) {
+    e.preventDefault();
+  }
+}, { passive: false });
+
+// BLOQUEAR ZOOM CONTÍNUO
+document.addEventListener('touchmove', function(e) {
+  if (e.scale !== 1) {
+    e.preventDefault();
+  }
+}, { passive: false });
+
+// BLOQUEAR DUPLO TOQUE
+let lastTouchEnd = 0;
+document.addEventListener('touchend', function(event) {
+  const now = Date.now();
+  if (now - lastTouchEnd <= 300) {
+    event.preventDefault();
+  }
+  lastTouchEnd = now;
+}, false);
