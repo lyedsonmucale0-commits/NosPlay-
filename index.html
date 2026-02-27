@@ -17,9 +17,15 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
+<!-- Firebase Config -->
 <script src="js/firebase.js"></script>
 <script src="js/alert.js"></script>
-<script defer src="js/log.js"></script>
+
+<!-- Apps -->
+<script src="apps/HolyPlay.js"></script>
+
+<!-- App JS -->
+<script defer src="js/app.js"></script>
 
 <!-- PWA -->
 <link rel="manifest" href="manifest.json">
@@ -91,23 +97,63 @@
 <div id="download-progress" style="display:none; width:0%; height:24px; background:#2962ff; color:white; text-align:center; line-height:24px; border-radius:4px; margin:10px 0;"></div>
 
 <!-- LIGHTBOX -->
-<div id="lightbox">
+<div id="lightbox" style="display:none;">
   <span id="prev-btn" onclick="prevSlide()">❮</span>
   <span id="next-btn" onclick="nextSlide()">❯</span>
   <span class="close" onclick="closeLightbox()">×</span>
   <img id="lightbox-img">
 </div>
 
-<!-- SCRIPTS -->
-<script src="apps/HolyPlay.js"></script>
-<script src="js/app.js"></script>
-
 <!-- FOOTER -->
 <footer class="footer">
   © 2025 NosPlay — Todos os direitos reservados<br>
-  <a href="/api/download?tag=V1.2">Baixar NosPlay</a>
   <a href="#" onclick="openAbout()">Sobre / Política</a>
 </footer>
 
+<script>
+// ==============================
+// LOGIN / REGISTRO
+// ==============================
+document.getElementById("login-btn").onclick = () => {
+  const email = document.getElementById("login-email").value;
+  const senha = document.getElementById("login-senha").value;
+  if(email && senha) loginEmail(email, senha);
+};
+
+document.getElementById("login-google-btn").onclick = () => loginGoogle();
+
+document.getElementById("show-register").onclick = () => {
+  document.getElementById("login").style.display="none";
+  document.getElementById("register").style.display="block";
+};
+
+document.getElementById("back-to-login").onclick = () => {
+  document.getElementById("register").style.display="none";
+  document.getElementById("login").style.display="block";
+};
+
+document.getElementById("reg-btn").onclick = () => {
+  const email = document.getElementById("reg-email").value;
+  const senha = document.getElementById("reg-senha").value;
+  if(email && senha) registerEmail(email, senha);
+};
+
+// ==============================
+// MOSTRAR HOME APÓS LOGIN
+// ==============================
+firebase.auth().onAuthStateChanged(user=>{
+  if(user){
+    document.getElementById("login").style.display="none";
+    document.getElementById("register").style.display="none";
+    document.getElementById("home").style.display="block";
+    renderCategories();
+    renderApps();
+  } else {
+    document.getElementById("login").style.display="block";
+    document.getElementById("home").style.display="none";
+  }
+});
+</script>
+
 </body>
-</html>
+  </html>
